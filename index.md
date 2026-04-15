@@ -33,7 +33,7 @@ function buildPopup(pub, index) {
 
   var mapsUrl  = 'https://www.google.com/maps/dir/?api=1&destination='
                  + pub.lat + ',' + pub.lng;
-  var shareUrl = window.location.origin + window.location.pathname + '#pub-' + index;
+  var shareUrl = pub.url;
 
   return '<div>'
     + imgHtml
