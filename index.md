@@ -7,7 +7,7 @@ description: Every Wetherspoon pub in the UK, mapped.
 <script>
 (function () {
 
-  var i = 'https://raw.githubusercontent.com/Sam12604/yam/refs/heads/main/data/1';
+  var i = 'https://cdn.jsdelivr.net/gh/Sam12604/wsmd@main/1';
 
   function makeIcon() {
     return L.divIcon({
