@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title | default: site.title }}</title>
+  <meta name="description" content="{{ page.description | default: site.description }}">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@400;600&display=swap"
+    rel="stylesheet">
+
+  <style>
+    /* ── Reset & Variables ───────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --blue: #0e3a6e;
+      --blue-mid: #1a5296;
+      --gold: #c8922a;
+      --gold-lt: #e8b84b;
+      --cream: #f8f4ec;
+      --cream-dk: #ede6d6;
+      --text: #1a1a1a;
+      --text-muted: #5a5a5a;
+      --border: #c4b89a;
+      --header-h: 56px;
+      --footer-h: 44px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      /* overflow: hidden; */
+    }
+
+    /* ── Layout Shell ────────────────────────────────── */
+    .shell {
+      display: grid;
+      grid-template-rows: var(--header-h) 1fr var(--footer-h);
+      height: 100dvh;
+    }
+
+    /* ── Header ──────────────────────────────────────── */
+    header {
+      background: var(--blue);
+      border-bottom: 3px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    /* Plate icon — pure CSS */
+    .plate-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--cream);
+      border: 3px solid var(--gold);
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: inset 0 0 0 5px var(--blue), inset 0 0 0 7px var(--gold-lt);
+    }
+
+    .plate-icon::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: var(--cream);
+      border: 1.5px solid var(--gold);
+    }
+
+    .header-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--cream);
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    .header-subtitle {
+      font-size: 0.7rem;
+      color: var(--gold-lt);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* Pub count badge */
+    .pub-count {
+      background: var(--gold);
+      color: var(--blue);
+      font-family: 'Playfair Display', serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 2px;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    /* ── Map ─────────────────────────────────────────── */
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* ── Footer ──────────────────────────────────────── */
+    footer {
+      background: var(--blue);
+      border-top: 2px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      z-index: 1000;
+    }
+
+    .footer-left {
+      font-size: 0.72rem;
+      color: var(--gold-lt);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      color: var(--cream-dk);
+      letter-spacing: 0.04em;
+    }
+
+    .legend-item a {
+      color: var(--cream-dk);
+      text-decoration: none;
+    }
+
+    .legend-item :hover {
+      text-decoration: underline;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .swatch-1 {
+      background: rgba(214, 51, 108, 0.55);
+      border-color: #d6336c;
+    }
+
+    .swatch-2 {
+      background: rgba(28, 126, 214, 0.55);
+      border-color: #1c7ed6;
+    }
+
+    .swatch-23 {
+      background: rgba(245, 159, 0, 0.55);
+      border-color: #f59f00;
+    }
+
+    /* ── Leaflet Popup ───────────────────────────────── */
+    .leaflet-popup-content-wrapper {
+      background: var(--cream);
+      border: 2px solid var(--gold);
+      border-radius: 4px;
+      box-shadow: 0 4px 20px rgba(14, 58, 110, 0.2);
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .leaflet-popup-content {
+      margin: 0;
+      width: 220px !important;
+    }
+
+    .leaflet-popup-tip {
+      background: var(--gold);
+    }
+
+    .popup-img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      display: block;
+      border-bottom: 2px solid var(--gold);
+    }
+
+    .popup-img-placeholder {
+      width: 100%;
+      height: 80px;
+      background: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 2px solid var(--gold);
+    }
+
+    .popup-img-placeholder .plate {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--cream);
+      border: 3px solid var(--gold);
+      box-shadow: inset 0 0 0 7px var(--blue-mid), inset 0 0 0 9px var(--gold-lt);
+    }
+
+    .popup-body {
+      padding: 10px 12px 12px;
+    }
+
+    .popup-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--blue);
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .popup-address {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .popup-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .popup-status.open {
+      color: #2b7a3c;
+    }
+
+    .popup-status.closed {
+      color: #b03020;
+    }
+
+    .popup-status::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .popup-link {
+      display: block;
+      text-align: center;
+      background: var(--blue);
+      color: var(--cream) !important;
+      text-decoration: none;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 7px 0;
+      border-top: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .popup-link:hover {
+      background: var(--blue-mid);
+    }
+
+    .popup-actions {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .popup-btn {
+      flex: 1;
+      text-align: center;
+      background: var(--cream-dk);
+      color: var(--blue);
+      border: 1.5px solid var(--border);
+      text-decoration: none;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 6px 0;
+      border-radius: 2px;
+      cursor: pointer;
+      font-family: 'Source Sans 3', sans-serif;
+      transition: background 0.15s;
+    }
+
+    .popup-btn:hover {
+      background: var(--border);
+    }
+
+    /* Custom marker */
+    .spoons-marker {
+      width: 22px;
+      height: 22px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: var(--blue);
+      border: 2.5px solid var(--gold);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+
+    .spoons-marker::after {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: var(--gold-lt);
+    }
+
+    /* Loading overlay */
+    #loading {
+      position: fixed;
+      inset: var(--header-h) 0 var(--footer-h);
+      background: var(--cream);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 900;
+      transition: opacity 0.4s;
+    }
+
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-plate {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 4px solid var(--gold);
+      border-top-color: var(--blue);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--blue);
+      letter-spacing: 0.05em;
+    }
+
+    /* Error state */
+    #error-msg {
+      display: none;
+      position: fixed;
+      bottom: calc(var(--footer-h) + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #b03020;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      z-index: 2000;
+    }
+
+    .locate-btn {
+      background: var(--blue);
+      color: var(--cream);
+      border: 2px solid var(--gold);
+      padding: 6px 12px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 2px;
+      margin-bottom: 8px;
+      /* sits above the zoom controls */
+    }
+
+    .locate-btn:hover {
+      background: var(--blue-mid);
+    }
+
+    .main-page {
+      padding: 40px clamp(16px, 5vw, 120px);
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .main-map {
+      height: 100%;
+      position: relative;
+    }
+
+    .page-content h1 {
+      font-family: 'Playfair Display', serif;
+      color: var(--blue);
+      font-size: 2rem;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--gold);
+    }
+
+    .page-content h2 {
+      font-family: 'Playfair Display', serif;
+      color: var(--blue);
+      font-size: 1.3rem;
+      margin: 32px 0 12px;
+    }
+
+    .page-content p {
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .page-content a {
+      color: var(--blue-mid);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="shell">
+
+    {% include header.html %}
+
+    <main class="main-{{ layout.type | default: 'map' }}">
+      {{ content }}
+    </main>
+
+    {% include footer.html %}
+
+  </div>
+
+</body>
+
+</html>
