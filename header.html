@@ -1,0 +1,14 @@
+<header>
+  <div class="header-brand" onclick="window.location='/'">
+    <div class="plate-icon"></div>
+    <div>
+      <div class="header-title">Spoons Map</div>
+      <div class="header-subtitle">Every Wetherspoon in the UK</div>
+    </div>
+  </div>
+  {% if page.layout == 'map' %}
+  <div class="pub-count" id="pub-count">Loading…</div>
+  {% endif %}
+</header>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
